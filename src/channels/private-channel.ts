@@ -2,6 +2,7 @@ let request = require('request');
 let url = require('url');
 import { Channel } from './channel';
 import { Log } from './../log';
+let Bottleneck = require('bottleneck');
 
 export class PrivateChannel {
     /**
@@ -9,6 +10,9 @@ export class PrivateChannel {
      */
     constructor(private options: any) {
         this.request = request;
+        this.limiter = new Bottleneck({
+            maxConcurrent: options.maxConcurrentAuthRequests
+        });
     }
 
     /**
@@ -17,12 +21,17 @@ export class PrivateChannel {
     private request: any;
 
     /**
+     * Limiter.
+     */
+    private limiter: any;
+
+    /**
      * Send authentication request to application server.
      */
     authenticate(socket: any, data: any): Promise<any> {
         let options = {
-            url: this.authHost(socket) + this.options.authEndpoint,
-            form: { channel_name: data.channel },
+            url: this.clientAuthUri(data) || (this.authHost(socket) + this.options.authEndpoint),
+            form: { channel_name: data.channel, socket_id: socket.id },
             headers: (data.auth && data.auth.headers) ? data.auth.headers : {},
             rejectUnauthorized: false
         };
@@ -31,7 +40,34 @@ export class PrivateChannel {
             Log.info(`[${new Date().toISOString()}] - Sending auth request to: ${options.url}\n`);
         }
 
-        return this.serverRequest(socket, options);
+        return this.limiter.schedule(() => this.serverRequest(socket, options));
+    }
+
+    /**
+     * Get the client auth URI of the first client.
+     */
+    protected clientAuthUri(data: any): string {
+        let client = this.appClients(data)[0];
+
+        return (client?.host || '') + (client?.authEndpoint || '');
+    }
+
+    /**
+     * Get the clients based on data.auth.app.
+     */
+    protected appClients(data: any): any[] {
+        let clients = [];
+        let app = data?.auth?.app;
+
+        if (app === undefined) return clients;
+
+        for (let client of this.options.clients) {
+            if (client?.appId === app) {
+                clients.push(client);
+            }
+        };
+
+        return clients;
     }
 
     /**
@@ -122,6 +158,8 @@ export class PrivateChannel {
     protected prepareHeaders(socket: any, options: any): any {
         options.headers['Cookie'] = options.headers['Cookie'] || socket.request.headers.cookie;
         options.headers['X-Requested-With'] = 'XMLHttpRequest';
+        options.headers["User-Agent"] = socket.request.headers["user-agent"];
+        options.headers["X-Forwarded-For"] = socket.request.headers["x-forwarded-for"] || socket.conn.remoteAddress;
 
         return options.headers;
     }

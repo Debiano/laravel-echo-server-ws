@@ -17,6 +17,7 @@ export class EchoServer {
     public defaultOptions: any = {
         authHost: 'http://localhost',
         authEndpoint: '/broadcasting/auth',
+        maxConcurrentAuthRequests: null,
         clients: [],
         database: 'redis',
         databaseConfig: {
@@ -24,6 +25,12 @@ export class EchoServer {
             sqlite: {
                 databasePath: '/database/laravel-echo-server.sqlite'
             }
+        },
+        additionalPublishes: {
+            whisper: true,
+            whisperTyping: false,
+            joinChannel: true,
+            leaveChannel: true
         },
         devMode: false,
         host: null,
@@ -112,7 +119,7 @@ export class EchoServer {
             this.httpApi.init();
 
             this.onConnect();
-            this.listen().then(() => resolve(), err => Log.error(err));
+            this.listen().then(() => resolve(undefined), err => Log.error(err));
         });
     }
 
@@ -157,7 +164,7 @@ export class EchoServer {
                 });
             });
 
-            Promise.all(subscribePromises).then(() => resolve());
+            Promise.all(subscribePromises).then(() => resolve(undefined));
         });
     }
 

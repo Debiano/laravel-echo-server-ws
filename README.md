@@ -81,6 +81,9 @@ Edit the default configuration of the server by adding options to your **laravel
 | `apiOriginAllow`   | `{}`                 | Configuration to allow API be accessed over CORS. [Example](#cross-domain-access-to-api) |
 | `authEndpoint`     | `/broadcasting/auth` | The route that authenticates private channels  |
 | `authHost`         | `http://localhost`   | The host of the server that authenticates private and presence channels  |
+| `maxConcurrentAuthRequests`         | `null`   | Max number of concurrent auth requests, null -> unlimited   |
+| `clients`          | `[]`                 | Multi tenancy API clients this server handles |
+| `additionalPublishes`  | `[]`                 | Configuration for client events which should be published via redis |
 | `database`         | `redis`              | Database used to store data that should persist, like presence channel members. Options are currently `redis` and `sqlite` |
 | `databaseConfig`   |  `{}`                | Configurations for the different database drivers [Example](#database) |
 | `devMode`          | `false`              | Adds additional logging for development purposes |
@@ -101,7 +104,9 @@ file, the following options can be overridden:
 - `authHost`: `LARAVEL_ECHO_SERVER_AUTH_HOST` *Note*: This option will fall back to the `LARAVEL_ECHO_SERVER_HOST` option as the default if that is set in the .env file.
 - `host`: `LARAVEL_ECHO_SERVER_HOST`
 - `port`: `LARAVEL_ECHO_SERVER_PORT`
+- `maxConcurrentAuthRequests`: `LARAVEL_ECHO_MAX_CONCURRENT_AUTH_REQUESTS`
 - `devMode`: `LARAVEL_ECHO_SERVER_DEBUG`
+- `databaseConfig.redis.db`: `LARAVEL_ECHO_SERVER_REDIS_DB`
 - `databaseConfig.redis.host`: `LARAVEL_ECHO_SERVER_REDIS_HOST`
 - `databaseConfig.redis.port`: `LARAVEL_ECHO_SERVER_REDIS_PORT`
 - `databaseConfig.redis.password`: `LARAVEL_ECHO_SERVER_REDIS_PASSWORD`
@@ -356,6 +361,58 @@ Redis::subscribe(['PresenceChannelUpdated'], function ($message) {
 ## Client Side Configuration
 
 See the official Laravel documentation for more information. <https://laravel.com/docs/master/broadcasting#introduction>
+
+### Multi Tenancy support
+
+If you would like your server to handle multi tenancy app clients, just add them in your **laravel-echo-server.json** like:
+
+```json
+"clients": [
+    {
+      "appId": "app-id-1",
+      "key": "app-key-1",
+      "host": "http://app1.domain.dev",
+      "authEndpoint": "/broadcasting/auth"
+    },
+    {
+      "appId": "app-id-2",
+      "key": "app-key-2",
+      "host": "http://app2.domain.dev",
+      "authEndpoint": "/broadcasting/auth"
+    }
+  ],
+```
+
+and set a **auth.app** value in your socket instance. For example:
+
+```javascript
+const echo = new Echo({
+    broadcaster: 'socket.io',
+    host: 'http://localhost:6001',
+    auth: {
+        app: 'app-id-2',
+        headers: {
+            Authorization: token,
+        },
+    },
+    
+});
+```
+
+Laravel Echo Server will get the first client that matches the app id and will use **host + authEndpoint** to create the auth URI.
+
+### Additional Publishes
+
+If you would like to make client events like whisper, typing and much other available to redis to catch them in your backend, just add them in your **laravel-echo-server.json** like:
+
+```json
+"additionalPublishes": {
+    "whisper": true,
+    "whisperTyping": true,
+    "joinChannel": true,
+    "leaveChannel": true
+},
+```
 
 ### Tips
 #### Socket.io client library

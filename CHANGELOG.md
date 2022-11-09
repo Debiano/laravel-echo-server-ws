@@ -1,3 +1,24 @@
+# 1.6.4
+
+## Added
+
+- Added functionality from timmy1420 (#478)[https://github.com/tlaverdure/laravel-echo-server/pull/478]
+- Added ability to publish leave, join, whisper and whisper typing to redis
+- Added support for multi tenancy client apps from mowses (#580)[https://github.com/tlaverdure/laravel-echo-server/pull/580]
+- Added error info for redis subscriber from neoteknic (#596)[https://github.com/tlaverdure/laravel-echo-server/pull/596]
+- Added rate limiting from raftx24 (#568)[https://github.com/tlaverdure/laravel-echo-server/pull/568]
+- Added user-agent and remote ip address from huguesjoyal (#546)[https://github.com/tlaverdure/laravel-echo-server/pull/546]
+
+## Fixed
+
+- Security patch - update dependencies
+- Updated functionality to work with SocketIO 4.x
+
+## Changes
+
+- Integrated changes from cmsc207teamLAMBAT (#595)[https://github.com/tlaverdure/laravel-echo-server/pull/595]
+- Integrated changes from dkulyk (#536)[https://github.com/tlaverdure/laravel-echo-server/pull/536]
+
 # 1.6.3
 
 ## Fixed

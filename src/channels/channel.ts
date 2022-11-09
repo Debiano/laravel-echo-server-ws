@@ -1,6 +1,7 @@
 import { PresenceChannel } from './presence-channel';
 import { PrivateChannel } from './private-channel';
 import { Log } from './../log';
+var Redis = require('ioredis');
 
 export class Channel {
     /**
@@ -24,11 +25,17 @@ export class Channel {
     presence: PresenceChannel;
 
     /**
+     * Redis client.i
+     */
+    private _redis: any;
+
+    /**
      * Create a new channel instance.
      */
     constructor(private io, private options) {
         this.private = new PrivateChannel(options);
         this.presence = new PresenceChannel(io, options);
+        this._redis = new Redis(options.databaseConfig.redis);
 
         if (this.options.devMode) {
             Log.success('Channels are ready.');
@@ -63,9 +70,21 @@ export class Channel {
             if (this.isClientEvent(data.event) &&
                 this.isPrivate(data.channel) &&
                 this.isInChannel(socket, data.channel)) {
-                this.io.sockets.connected[socket.id]
-                    .broadcast.to(data.channel)
-                    .emit(data.event, data.channel, data.data);
+                socket.to(data.channel).emit(data.event, data.channel, data.data);
+
+                /**
+                 * Publish whisper data as PresenceChannelWhiser channel
+                 */
+                if ( this.options.additionalPublishes.whisper === true ) {
+                    if (this.options.additionalPublishes.whisperTyping === true || data.event !== "client-typing") {
+                        this._redis.publish('ClientChannelActions', JSON.stringify({
+                            "event": data.event,
+                            "channel": data.channel,
+                            "data": data.data,
+                            "socket": socket.id,
+                        }));
+                    }
+                }
             }
         }
     }
@@ -83,6 +102,17 @@ export class Channel {
 
             if (this.options.devMode) {
                 Log.info(`[${new Date().toISOString()}] - ${socket.id} left channel: ${channel} (${reason})`);
+            }
+
+            /**
+             * Publish client leave as ClientChannelActions channel
+             */
+            if ( this.options.additionalPublishes.leaveChannel === true ) {
+                this._redis.publish('ClientChannelActions', JSON.stringify({
+                    "event": "ClientLeavedChannel",
+                    "channel": channel,
+                    "socket": socket.id,
+                }));
             }
         }
     }
@@ -142,6 +172,16 @@ export class Channel {
         if (this.options.devMode) {
             Log.info(`[${new Date().toISOString()}] - ${socket.id} joined channel: ${channel}`);
         }
+        /**
+         * Publish client join as ClientChannelActions channel
+         */
+        if ( this.options.additionalPublishes.joinChannel === true ) {
+            this._redis.publish('ClientChannelActions', JSON.stringify({
+                "event": "ClientJoinedChannel",
+                "channel": channel,
+                "socket": socket.id,
+            }));
+        }
     }
 
     /**
@@ -162,6 +202,6 @@ export class Channel {
      * Check if a socket has joined a channel.
      */
     isInChannel(socket: any, channel: string): boolean {
-        return !!socket.rooms[channel];
+        return socket.rooms.has(channel);
     }
 }

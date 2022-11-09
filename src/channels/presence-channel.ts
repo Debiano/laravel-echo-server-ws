@@ -1,6 +1,5 @@
 import { Database } from './../database';
 import { Log } from './../log';
-var _ = require("lodash");
 
 export class PresenceChannel {
     /**
@@ -56,7 +55,7 @@ export class PresenceChannel {
             this.io
                 .of("/")
                 .in(channel)
-                .clients((error, clients) => {
+                .fetchSockets((error, clients) => {
                     members = members || [];
                     members = members.filter((member) => {
                         return clients.indexOf(member.socketId) >= 0;
@@ -94,7 +93,11 @@ export class PresenceChannel {
 
                         this.db.set(channel + ":members", members);
 
-                        members = _.uniqBy(members.reverse(), "user_id");
+                        members = [
+                            ...members.reduce(
+                                (map, member) => map.set(member.user_id, member), new Map()
+                            ).values()
+                        ]
 
                         this.onSubscribed(socket, channel, members);
 
@@ -119,19 +122,26 @@ export class PresenceChannel {
         this.getMembers(channel).then(
             (members) => {
                 members = members || [];
-                let member = members.find(
-                    (member) => member.socketId == socket.id
-                );
-                members = members.filter((m) => m.socketId != member.socketId);
+
+                let member;
+                members = members.filter((m) => {
+                    if (m.socketId == socket.id) {
+                        member = m;
+                        return false;
+                    }
+                    return true
+                });
 
                 this.db.set(channel + ":members", members);
 
-                this.isMember(channel, member).then((is_member) => {
-                    if (!is_member) {
-                        delete member.socketId;
-                        this.onLeave(channel, member);
-                    }
-                });
+                if(member) {
+                    this.isMember(channel, member).then((is_member) => {
+                        if (!is_member) {
+                            delete member.socketId;
+                            this.onLeave(channel, member);
+                        }
+                    });
+                }
             },
             (error) => Log.error(error)
         );

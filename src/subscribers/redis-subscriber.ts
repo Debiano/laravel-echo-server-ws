@@ -55,12 +55,13 @@ export class RedisSubscriber implements Subscriber {
 
             this._redis.psubscribe(`${this._keyPrefix}*`, (err, count) => {
                 if (err) {
+                    Log.info(err);
                     reject('Redis could not subscribe.')
                 }
 
                 Log.success('Listening for redis events...');
 
-                resolve();
+                resolve(undefined);
             });
         });
     }
@@ -74,7 +75,7 @@ export class RedisSubscriber implements Subscriber {
         return new Promise((resolve, reject) => {
             try {
                 this._redis.disconnect();
-                resolve();
+                resolve(undefined);
             } catch(e) {
                 reject('Could not disconnect from redis -> ' + e);
             }
