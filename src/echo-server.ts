@@ -2,10 +2,12 @@ import { HttpSubscriber, RedisSubscriber, Subscriber } from './subscribers';
 import { Channel } from './channels';
 import { Server } from './server';
 import { HttpApi } from './api';
-import { Log } from './log';
+import { Log, LogLevel } from './log';
 import * as fs from 'fs';
 const packageFile = require('../package.json');
 const { constants } = require('crypto');
+const { createAdapter } = require("@socket.io/redis-adapter");
+const { createClient } = require("redis");
 
 /**
  * Echo server class.
@@ -33,6 +35,7 @@ export class EchoServer {
             leaveChannel: true
         },
         devMode: false,
+        logLevel: LogLevel.Info,
         host: null,
         port: 6001,
         protocol: "http",
@@ -90,13 +93,23 @@ export class EchoServer {
     run(options: any): Promise<any> {
         return new Promise((resolve, reject) => {
             this.options = Object.assign(this.defaultOptions, options);
+            Log.info("Echo Server Options: " + JSON.stringify(this.options));
             this.startup();
             this.server = new Server(this.options);
 
             this.server.init().then(io => {
-                this.init(io).then(() => {
+                this.init(io).then(async () => {
                     Log.info('\nServer ready!\n');
                     resolve(this);
+
+                    const pubClient = createClient({ url: "redis://redis5:5010" });
+                    const subClient = pubClient.duplicate();
+                    await Promise.all([pubClient.connect(), subClient.connect()]).then(() => {
+                        Log.info('Pub/Sub Created');
+                        io.adapter(createAdapter(pubClient, subClient));
+                        Log.info('Redis Adapter Connected');
+                        resolve(this);
+                    });
                 }, error => Log.error(error));
             }, error => Log.error(error));
         });
@@ -107,6 +120,7 @@ export class EchoServer {
      */
     init(io: any): Promise<any> {
         return new Promise((resolve, reject) => {
+            Log.setLogLevel(this.options.logLevel);
             this.channel = new Channel(io, this.options);
 
             this.subscribers = [];

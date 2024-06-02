@@ -15,7 +15,26 @@ colors.setTheme({
     h2: 'yellow'
 });
 
+export const LogLevel = {
+    Info: 1,
+    Subtitle: 2,
+    Title: 3,
+    Success: 4,
+    Warning: 5,
+    Error: 6
+}
+
+var globalMinLogLevel = LogLevel.Title
+
 export class Log {
+    /**
+     *
+     * @param {int} level
+     */
+    static setLogLevel(level): void {
+        globalMinLogLevel = level
+    }
+
     /**
      * Console log heading 1.
      *
@@ -24,6 +43,9 @@ export class Log {
      */
     static title(message: any): void {
         console.log(colors.bold(message));
+        if (globalMinLogLevel <= LogLevel.Title) {
+            console.log(colors.bold(message));
+        }
     }
 
     /**
@@ -34,6 +56,9 @@ export class Log {
      */
     static subtitle(message: any): void {
         console.log(colors.h2.bold(message));
+        if (globalMinLogLevel <= LogLevel.Subtitle) {
+            console.log(colors.h2.bold(message));
+        }
     }
 
     /**
@@ -44,6 +69,9 @@ export class Log {
      */
     static info(message: any): void {
         console.log(colors.info(message));
+        if (globalMinLogLevel <= LogLevel.Info) {
+            console.log(colors.info(message));
+        }
     }
 
     /**
@@ -54,6 +82,9 @@ export class Log {
      */
     static success(message: any): void {
         console.log(colors.green('\u2714 '), message);
+        if (globalMinLogLevel <= LogLevel.Success) {
+            console.log(colors.green('\u2714 '), message);
+        }
     }
 
     /**
@@ -66,6 +97,9 @@ export class Log {
      */
     static error(message: any): void {
         console.log(colors.error(message));
+        if (globalMinLogLevel <= LogLevel.Error) {
+            console.log(colors.error(message));
+        }
     }
 
     /**
@@ -76,5 +110,8 @@ export class Log {
      */
     static warning(message: any): void {
         console.log(colors.warn('\u26A0 ' + message));
+        if (globalMinLogLevel <= LogLevel.Warning) {
+            console.log(colors.warn('\u26A0 ' + message));
+        }
     }
 }

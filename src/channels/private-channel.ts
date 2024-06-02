@@ -146,6 +146,12 @@ export class PrivateChannel {
                         body = response.body
                     }
 
+                    if (!body.channel_data) {
+                        body.channel_data = {}
+                    }
+
+                    body.channel_data.ip = socket.request.headers["cf-connecting-ip"] || socket.request.headers["x-forwarded-for"] || socket.conn.remoteAddress;
+
                     resolve(body);
                 }
             });

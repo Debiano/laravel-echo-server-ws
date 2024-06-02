@@ -87,6 +87,7 @@ Edit the default configuration of the server by adding options to your **laravel
 | `database`         | `redis`              | Database used to store data that should persist, like presence channel members. Options are currently `redis` and `sqlite` |
 | `databaseConfig`   |  `{}`                | Configurations for the different database drivers [Example](#database) |
 | `devMode`          | `false`              | Adds additional logging for development purposes |
+| `logLevel`         | `1`                  | Log level, lower means more logs, enter 6 for errors only, 5 for warnings and errors |
 | `host`             | `null`               | The host of the socket.io server ex.`app.dev`. `null` will accept connections on any IP-address |
 | `port`             | `6001`               | The port that the socket.io server should run on |
 | `protocol`         | `http`               | Must be either `http` or `https` |
@@ -106,6 +107,7 @@ file, the following options can be overridden:
 - `port`: `LARAVEL_ECHO_SERVER_PORT`
 - `maxConcurrentAuthRequests`: `LARAVEL_ECHO_MAX_CONCURRENT_AUTH_REQUESTS`
 - `devMode`: `LARAVEL_ECHO_SERVER_DEBUG`
+- `logLevel`: `LARAVEL_ECHO_SERVER_LOGLEVEL`
 - `databaseConfig.redis.db`: `LARAVEL_ECHO_SERVER_REDIS_DB`
 - `databaseConfig.redis.host`: `LARAVEL_ECHO_SERVER_REDIS_HOST`
 - `databaseConfig.redis.port`: `LARAVEL_ECHO_SERVER_REDIS_PORT`
